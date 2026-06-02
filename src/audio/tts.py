@@ -60,7 +60,8 @@ class TTSQueueManager:
                 # Extract and save audio bytes
                 for part in response.candidates[0].content.parts:
                     if part.inline_data and part.inline_data.mime_type.startswith("audio/"):
-                        filename = os.path.join(self.output_dir, f"dialogue_{index:04d}_{uuid.uuid4().hex[:8]}.wav")
+                        speaker_safe = speaker.replace(' ', '_').lower()
+                        filename = os.path.join(self.output_dir, f"dialogue_{index:08d}_{speaker_safe}_{uuid.uuid4().hex[:8]}.wav")
                         with open(filename, "wb") as f:
                             f.write(part.inline_data.data)
                         print(f"Generated {filename} for {speaker}")
@@ -77,11 +78,23 @@ class TTSQueueManager:
         # Start a couple of worker tasks to process in background (maintaining a buffer)
         workers = [asyncio.create_task(self.worker()) for _ in range(3)]
 
+        # Find the highest existing index to allow for continuous append
+        starting_index = 0
+        import glob
+        existing_files = glob.glob(os.path.join(self.output_dir, "dialogue_*.wav"))
+        for ef in existing_files:
+            try:
+                idx = int(os.path.basename(ef).split('_')[1])
+                if idx >= starting_index:
+                    starting_index = idx + 1
+            except:
+                pass
+
         for i, dialogue in enumerate(dialogues):
             await self.queue.put({
                 "speaker": dialogue.get("speaker", "Unknown"),
                 "text": dialogue.get("text", ""),
-                "index": i
+                "index": starting_index + i
             })
 
         await self.queue.join()
