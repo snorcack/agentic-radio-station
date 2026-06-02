@@ -67,7 +67,12 @@ class TTSQueueManager:
                         print(f"Generated {filename} for {speaker}")
                         break
             except Exception as e:
-                print(f"Error generating audio for {speaker}: {e}")
+                print(f"Error generating audio for {speaker}: {e}. Falling back to text-only mode.")
+                speaker_safe = speaker.replace(' ', '_').lower()
+                txt_filename = os.path.join(self.output_dir, f"dialogue_{index:08d}_{speaker_safe}_{uuid.uuid4().hex[:8]}.txt")
+                with open(txt_filename, "w") as f:
+                    f.write(f"{speaker}: {text}")
+                print(f"Generated text fallback {txt_filename}")
             finally:
                 self.queue.task_done()
 

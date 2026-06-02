@@ -33,8 +33,10 @@ def mix_show(output_dir="output", assets_dir="assets", final_mix_path="output/sh
     music = AudioSegment.from_mp3(os.path.join(assets_dir, "music.mp3"))
     ring = AudioSegment.from_mp3(os.path.join(assets_dir, "ring.mp3"))
 
-    # Get all dialogue files, sorted by the 8-digit index
-    dialogue_files = sorted(glob.glob(os.path.join(output_dir, "dialogue_*.wav")))
+    # Get all dialogue files (both .wav and .txt fallbacks), sorted by the 8-digit index
+    dialogue_wavs = glob.glob(os.path.join(output_dir, "dialogue_*.wav"))
+    dialogue_txts = glob.glob(os.path.join(output_dir, "dialogue_*.txt"))
+    dialogue_files = sorted(dialogue_wavs + dialogue_txts)
 
     if not dialogue_files:
         print("No dialogue files found in output directory.")
@@ -44,7 +46,13 @@ def mix_show(output_dir="output", assets_dir="assets", final_mix_path="output/sh
 
     for filepath in dialogue_files:
         filename = os.path.basename(filepath)
-        segment = AudioSegment.from_wav(filepath)
+
+        # If it's a text fallback, generate 2 seconds of silence instead of audio
+        if filepath.endswith('.txt'):
+            segment = AudioSegment.silent(duration=2000)
+            print(f"Skipped missing audio for text fallback: {filename}")
+        else:
+            segment = AudioSegment.from_wav(filepath)
 
         # Check if caller is in the filename to prefix with ring
         if "_caller" in filename.lower():
