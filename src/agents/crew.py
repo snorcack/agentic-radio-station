@@ -44,19 +44,24 @@ def get_rj_dave_agent():
         allow_delegation=False
     )
 
-def get_fake_caller_agent(caller_id="Anonymous"):
+def get_fake_caller_agent(caller_id="Anonymous", custom_prompt=None):
     # Append caller ID to backstory for memory entity context
     backstory_suffix = f" You are caller {caller_id}."
+    if custom_prompt:
+        backstory = f"{custom_prompt}. {backstory_suffix}"
+    else:
+        backstory = 'You are a random caller with a wild persona (could be a VIP, a drunk uncle, a prank teenager, or a single mom). You go bonkers and stir things up.' + backstory_suffix
+
     return Agent(
         role='Random Fake Caller',
         goal='Call into the show to create dynamic, unpredictable, and funny interruptions based on the current topic.',
-        backstory='You are a random caller with a wild persona (could be a VIP, a drunk uncle, a prank teenager, or a single mom). You go bonkers and stir things up.' + backstory_suffix,
+        backstory=backstory,
         verbose=True,
         llm='gemini/gemini-1.5-flash',
         allow_delegation=False
     )
 
-def run_show_pipeline(theme, rj_name, caller_id="Anonymous"):
+def run_show_pipeline(theme, rj_name, caller_id="Anonymous", caller_prompt=None, caller_topic=None):
     rj_agents = {
         'Max': get_rj_max_agent(),
         'Luna': get_rj_luna_agent(),
@@ -68,7 +73,7 @@ def run_show_pipeline(theme, rj_name, caller_id="Anonymous"):
         raise ValueError(f"Unknown RJ: {rj_name}")
 
     producer = get_producer_agent()
-    caller = get_fake_caller_agent(caller_id)
+    caller = get_fake_caller_agent(caller_id, caller_prompt)
 
     monologue_task = Task(
         description=f'Write an engaging opening monologue for the radio segment about the theme "{theme}". The monologue should strictly follow your persona.',
@@ -76,8 +81,12 @@ def run_show_pipeline(theme, rj_name, caller_id="Anonymous"):
         agent=selected_rj
     )
 
+    interruption_desc = f'Call into the show and interrupt the RJ\'s monologue about "{theme}". Introduce your random, crazy persona and give a wild, funny opinion or problem related to the theme.'
+    if caller_topic:
+        interruption_desc = f'Call into the show and interrupt the RJ\'s monologue. Introduce yourself based on your persona and aggressively discuss this specific topic: "{caller_topic}".'
+
     interruption_task = Task(
-        description=f'Call into the show and interrupt the RJ\'s monologue about "{theme}". Introduce your random, crazy persona and give a wild, funny opinion or problem related to the theme.',
+        description=interruption_desc,
         expected_output='A dialogue snippet of the caller interrupting the RJ.',
         agent=caller,
         context=[monologue_task]
@@ -106,7 +115,7 @@ def run_show_pipeline(theme, rj_name, caller_id="Anonymous"):
             "provider": "google",
             "config": {
                 "model": "models/embedding-001",
-                "api_key": os.environ.get("GEMINI_API_KEY")
+                "api_key": os.environ.get("GEMINI_API_KEY", "dummy_key_for_validation")
             }
         },
         verbose=True
