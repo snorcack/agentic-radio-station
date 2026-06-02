@@ -10,8 +10,12 @@ function App() {
     logs: []
   });
 
-  const [newShow, setNewShow] = useState({ theme: '', rj_name: 'Max' });
+  const [availablePrograms, setAvailablePrograms] = useState([]);
+
+  const [newShow, setNewShow] = useState({ theme: '', rj_name: 'max.yaml' });
   const [caller, setCaller] = useState({ prompt: '', topic: '' });
+  const [forceShowId, setForceShowId] = useState('');
+  const [forceReason, setForceReason] = useState('We have breaking news!');
   const logsEndRef = useRef(null);
 
   useEffect(() => {
@@ -25,7 +29,21 @@ function App() {
       }
     };
 
+    const fetchAvailable = async () => {
+      try {
+        const res = await fetch(`${API_URL}/programs/available`);
+        const data = await res.json();
+        setAvailablePrograms(data.programs || []);
+        if (data.programs && data.programs.length > 0) {
+          setForceShowId(data.programs[0].id);
+        }
+      } catch (e) {
+        console.error("Error fetching available programs:", e);
+      }
+    };
+
     fetchState();
+    fetchAvailable();
     const interval = setInterval(fetchState, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -56,6 +74,18 @@ function App() {
       body: JSON.stringify({ caller_prompt: caller.prompt, caller_topic: caller.topic })
     });
     setCaller({ prompt: '', topic: '' });
+  };
+
+  const handleForceTransition = async (e) => {
+    e.preventDefault();
+    if (!forceShowId) return;
+
+    await fetch(`${API_URL}/programs/force`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ program_id: forceShowId, interrupt_reason: forceReason })
+    });
+    setForceReason('We have breaking news!');
   };
 
   return (
@@ -126,13 +156,45 @@ function App() {
                     onChange={e => setNewShow({...newShow, rj_name: e.target.value})}
                     className="w-full bg-gray-900 border border-gray-700 rounded p-2 focus:border-blue-500 focus:outline-none"
                   >
-                    <option value="Max">RJ Max (High Energy)</option>
-                    <option value="Luna">RJ Luna (Cosmic/Slow)</option>
-                    <option value="Dave">RJ Dave (Sarcastic Rocker)</option>
+                    <option value="max.yaml">RJ Max (High Energy)</option>
+                    <option value="luna.yaml">RJ Luna (Cosmic/Slow)</option>
+                    <option value="dave.yaml">RJ Dave (Sarcastic Rocker)</option>
                   </select>
                 </div>
                 <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium p-2 rounded flex items-center justify-center gap-2 transition-colors">
                   <Plus className="w-4 h-4" /> Queue Program
+                </button>
+              </form>
+            </div>
+
+            {/* Force Transition */}
+            <div className="bg-gray-800 p-6 rounded-xl border border-red-500/30">
+              <h2 className="text-xl font-semibold mb-4 text-red-400">Force Transition</h2>
+              <form onSubmit={handleForceTransition} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Select Program from Config</label>
+                  <select
+                    value={forceShowId}
+                    onChange={e => setForceShowId(e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 focus:border-red-500 focus:outline-none"
+                  >
+                    {availablePrograms.map(prog => (
+                      <option key={prog.id} value={prog.id}>{prog.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Interrupt Reason</label>
+                  <input
+                    type="text"
+                    value={forceReason}
+                    onChange={e => setForceReason(e.target.value)}
+                    placeholder="e.g. We have breaking news!"
+                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 focus:border-red-500 focus:outline-none"
+                  />
+                </div>
+                <button type="submit" className="w-full bg-red-600 hover:bg-red-500 text-white font-medium p-2 rounded flex items-center justify-center gap-2 transition-colors">
+                  Interrupt & Play Now
                 </button>
               </form>
             </div>

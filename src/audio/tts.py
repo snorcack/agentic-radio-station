@@ -110,9 +110,27 @@ class TTSQueueManager:
         await asyncio.gather(*workers)
         print("Finished processing all dialogues in queue.")
 
-def synthesize_dialogue(dialogues: list, output_dir: str = "output"):
+def synthesize_dialogue(dialogues: list, output_dir: str = "output", start_index: int = None):
     """
     Synchronous wrapper to initialize the async queue manager and process dialogues.
     """
     manager = TTSQueueManager(output_dir=output_dir)
-    asyncio.run(manager.process_dialogues(dialogues))
+    # We patch process_dialogues slightly to accept a custom start_index just for this wrapper if provided
+    async def run_with_index():
+        if start_index is not None:
+            # Quick override
+            workers = [asyncio.create_task(manager.worker()) for _ in range(3)]
+            for i, dialogue in enumerate(dialogues):
+                await manager.queue.put({
+                    "speaker": dialogue.get("speaker", "Unknown"),
+                    "text": dialogue.get("text", ""),
+                    "index": start_index + i
+                })
+            await manager.queue.join()
+            for _ in range(3):
+                await manager.queue.put(None)
+            await asyncio.gather(*workers)
+        else:
+            await manager.process_dialogues(dialogues)
+
+    asyncio.run(run_with_index())

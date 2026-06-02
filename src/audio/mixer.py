@@ -77,5 +77,12 @@ def mix_show(output_dir="output", assets_dir="assets", final_mix_path="output/sh
     final_mix.export(final_mix_path, format="mp3")
     print(f"Exported final mix to {final_mix_path} (Duration: {len(final_mix)/1000.0}s)")
 
+    # Cleanup dialogue files so they don't pile up for the next show
+    for filepath in dialogue_files:
+        try:
+            os.remove(filepath)
+        except Exception as e:
+            print(f"Warning: could not delete {filepath}: {e}")
+
 if __name__ == "__main__":
     mix_show()

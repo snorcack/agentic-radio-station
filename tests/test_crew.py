@@ -11,7 +11,7 @@ def test_crewai_pipeline_compilation(mock_crew_class):
     mock_crew_instance.kickoff.return_value = "Mocked Dialog Output"
 
     # Run pipeline
-    result = run_show_pipeline(theme="Space Travel", rj_name="Luna", caller_id="Alien123")
+    result = run_show_pipeline(theme="Space Travel", presenter_file="luna.yaml", caller_id="Alien123")
 
     # Verify crew was compiled correctly
     assert result == "Mocked Dialog Output"
@@ -23,20 +23,20 @@ def test_crewai_pipeline_compilation(mock_crew_class):
     agents = kwargs.get('agents', [])
     assert len(agents) == 3
     assert agents[0].role == 'Producer Orchestrator'
-    assert agents[1].role == 'Radio Jockey Luna'
+    assert agents[1].role == 'Radio Jockey'
     assert agents[2].role == 'Random Fake Caller'
     assert 'Alien123' in agents[2].backstory
     assert kwargs.get('memory') is True
 
 def test_unknown_rj_exception():
     with pytest.raises(ValueError) as exc:
-        run_show_pipeline(theme="Tech", rj_name="UnknownRJ")
-    assert "Unknown RJ: UnknownRJ" in str(exc.value)
+        run_show_pipeline(theme="Tech", presenter_file="unknown.yaml")
+    assert "Unknown presenter config" in str(exc.value)
 
 @pytest.mark.skipif(not os.environ.get("GEMINI_API_KEY"), reason="No Gemini API Key found")
 def test_crewai_live_api():
     # Only runs if API key is provided
-    result = run_show_pipeline(theme="Testing Live Run", rj_name="Max", caller_id="LiveTester")
+    result = run_show_pipeline(theme="Testing Live Run", presenter_file="max.yaml", caller_id="LiveTester")
     # Verify we get some string output back
     assert isinstance(result, str)
     assert len(result) > 10
