@@ -76,12 +76,17 @@ class TTSQueueManager:
             finally:
                 self.queue.task_done()
 
+            # Enforce 6 requests per minute limit (10.5 seconds per request)
+            # Only sleep if the queue isn't completely empty to save time on the final item
+            if not self.queue.empty():
+                await asyncio.sleep(11)
+
     async def process_dialogues(self, dialogues):
         """
         dialogues is a list of dicts: [{"speaker": "RJ Max", "text": "Hello world!"}, ...]
         """
-        # Start a couple of worker tasks to process in background (maintaining a buffer)
-        workers = [asyncio.create_task(self.worker()) for _ in range(3)]
+        # Start only 1 worker task to process sequentially and respect the 6 RPM rate limit
+        workers = [asyncio.create_task(self.worker()) for _ in range(1)]
 
         # Find the highest existing index to allow for continuous append
         starting_index = 0
@@ -105,7 +110,7 @@ class TTSQueueManager:
         await self.queue.join()
 
         # Stop workers
-        for _ in range(3):
+        for _ in range(1):
             await self.queue.put(None)
         await asyncio.gather(*workers)
         print("Finished processing all dialogues in queue.")
@@ -118,8 +123,8 @@ def synthesize_dialogue(dialogues: list, output_dir: str = "output", start_index
     # We patch process_dialogues slightly to accept a custom start_index just for this wrapper if provided
     async def run_with_index():
         if start_index is not None:
-            # Quick override
-            workers = [asyncio.create_task(manager.worker()) for _ in range(3)]
+            # Quick override with 1 worker
+            workers = [asyncio.create_task(manager.worker()) for _ in range(1)]
             for i, dialogue in enumerate(dialogues):
                 await manager.queue.put({
                     "speaker": dialogue.get("speaker", "Unknown"),
@@ -127,7 +132,7 @@ def synthesize_dialogue(dialogues: list, output_dir: str = "output", start_index
                     "index": start_index + i
                 })
             await manager.queue.join()
-            for _ in range(3):
+            for _ in range(1):
                 await manager.queue.put(None)
             await asyncio.gather(*workers)
         else:
