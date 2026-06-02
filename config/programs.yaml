@@ -1,0 +1,28 @@
+programs:
+  - id: "tech_trends"
+    title: "Tech Trends Today"
+    theme: "The future of AI and robotics in everyday life"
+    program_type: "Tech Talk"
+    presenter: "max.yaml"
+    guest: "expert.yaml"
+
+  - id: "cosmic_hour"
+    title: "The Cosmic Hour"
+    theme: "Finding inner peace in a chaotic universe"
+    program_type: "Philosophy/Meditation"
+    presenter: "luna.yaml"
+    guest: null
+
+  - id: "rock_history"
+    title: "Rock History 101"
+    theme: "Why the 70s was the peak of musical achievement"
+    program_type: "Music Discussion"
+    presenter: "dave.yaml"
+    guest: null
+
+  - id: "viral_gossip"
+    title: "Viral Gossip"
+    theme: "The most ridiculous internet drama this week"
+    program_type: "Pop Culture"
+    presenter: "max.yaml"
+    guest: null
