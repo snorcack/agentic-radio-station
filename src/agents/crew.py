@@ -41,7 +41,7 @@ def get_producer_agent():
             "goal": "Manage the show schedule.",
             "backstory": "A veteran radio producer."
         }
-    return create_agent_from_config(config, allow_delegation=True)
+    return create_agent_from_config(config, allow_delegation=False)
 
 def get_presenter_agent(presenter_file: str):
     config = get_agent_config("presenters", presenter_file)
@@ -157,8 +157,8 @@ def run_show_pipeline(theme, presenter_file, guest_file=None, caller_id="Anonymo
     tasks.append(response_task)
 
     formatting_task = Task(
-        description='Format the entire interaction into a structured dialogue format suitable for Text-to-Speech (TTS) generation. Ensure the text is split into short, easily readable sentences. Use clear speaker labels (e.g., RJ Name: ... or Caller: ...). Keep sentences concise for faster TTS generation.',
-        expected_output='A fully structured script of the radio segment with clear speaker labels and short sentences.',
+        description='Format the entire interaction into a structured dialogue format suitable for Text-to-Speech (TTS) generation. Combine consecutive sentences spoken by the same person into long, coherent paragraphs. Use clear speaker labels (e.g., RJ Name: ... or Caller: ...). Keep the paragraphs dense to maximize the amount of audio generated per API request.',
+        expected_output='A fully structured script of the radio segment with clear speaker labels and long paragraphs.',
         agent=producer,
         context=tasks.copy()
     )

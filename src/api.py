@@ -99,7 +99,12 @@ def parse_crew_output(output_text, presenter_file):
                 continue
 
             if current_speaker:
-                dialogues.append({"speaker": current_speaker, "text": " ".join(current_text)})
+                # Instead of appending immediately, check if the previous chunk was by the same speaker.
+                # If so, combine them to reduce total TTS requests to fit inside the 6 RPM rate limit.
+                if dialogues and dialogues[-1]["speaker"] == current_speaker:
+                    dialogues[-1]["text"] += " " + " ".join(current_text)
+                else:
+                    dialogues.append({"speaker": current_speaker, "text": " ".join(current_text)})
 
             current_speaker = speaker
             current_text = [parts[1].strip()]
@@ -107,7 +112,10 @@ def parse_crew_output(output_text, presenter_file):
             current_text.append(line)
 
     if current_speaker:
-        dialogues.append({"speaker": current_speaker, "text": " ".join(current_text)})
+        if dialogues and dialogues[-1]["speaker"] == current_speaker:
+            dialogues[-1]["text"] += " " + " ".join(current_text)
+        else:
+            dialogues.append({"speaker": current_speaker, "text": " ".join(current_text)})
 
     if not dialogues and current_text:
         dialogues.append({"speaker": presenter_name, "text": " ".join(current_text)})
